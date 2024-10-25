@@ -19,6 +19,7 @@ Extension of the previous paper "No Bells, Just Whistles: Sports Field Registrat
     - [Datasets](#datasets)
     - [Metrics](#metrics)
     - [Evaluation](#evaluation)
+- [Training](#training)
 - [Requirements](#requirements)
 - [Citation](#citation)
 
@@ -132,6 +133,30 @@ chmod +x scripts/run_pipeline_tswc.sh
 ```
 
 Task results will be printed on screen.
+
+<hr>
+
+## Training
+### Keypoint detection
+```shell
+python train.py --cfg config/hrnetv2_w48.yaml --dataset SoccerNet --root_dir datasets/calibration-2023/ --save_dir weights/MV_kp_exp1 
+```
+
+### Line detection
+```shell
+python train_l.py --cfg config/hrnetv2_w48_l.yaml --dataset SoccerNet --root_dir datasets/calibration-2023/ --save_dir weights/MV_line_exp1 
+```
+
+Additional available arguments for both keypoint and line detection training:
+- `--cuda`: CUDA device index (default: 'cuda:0')
+- `--batch`: Batch size for train / val (default: 2)
+- `--num_workers`: Number of workers for data loading (default: 4)
+- `--num_epochs`: Number of training epochs (default: 200)
+- `--pretrained`: Pretrained weights path
+- `--lr0`: Initial learning rate (default: 0.001)
+- `--patience`: Patience parameter for lr scheduler (default: 8)
+- `--factor`: Reducing factor for lr scheduler (default: 0.5)
+- `--wandb_project`: Wandb project name
 
 <hr>
 
