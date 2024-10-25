@@ -54,3 +54,83 @@ Multiple-View
 |Lines| X | [**MV_lines**](https://github.com/mguti97/PnLCalib/releases/download/v1.0.0/MV_lines) |
 
 <hr>
+
+## Inference
+
+On video:
+``` shell
+python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --input_path "examples/iniesta_sample.mp4" --input_type "video" --display
+```
+
+On image:
+``` shell
+python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --input_path "examples/messi_sample.png" --input_type "image" --save_path "examples/messi_results.png"
+```
+<hr>
+
+## Experiments
+### Datasets
+#### SoccerNet-Calibration-V3:
+To download the 2022 version, switch the downloader's task to "calibration".
+``` shell
+from SoccerNet.Downloader import SoccerNetDownloader
+mySoccerNetDownloader = SoccerNetDownloader(LocalDirectory="</nfs/data/soccernet>")
+mySoccerNetDownloader.downloadDataTask(task="calibration-2023", split=["train","valid","test"])
+```
+See https://github.com/MM4SPA/tvcalib to download the camera-type annotations for SoccerNet-Calibration-2022.
+
+#### WorldCup 2014
+```shell
+mkdir -p datasets/WC-2014/test && cd datasets/WC-2014/test
+# Images and provided homography matrices from test split
+wget https://nhoma.github.io/data/soccer_data.tar.gz
+tar -zxvf soccer_data.tar.gz
+```
+
+See https://github.com/MM4SPA/tvcalib to download the additional segment annotations in SoccerNet-Calibration format.
+
+#### TS-WorldCup
+Download the [TS-WorldCup](https://cgv.cs.nthu.edu.tw/KpSFR_data/TS-WorldCup.zip) dataset
+
+<hr>
+
+### Metrics
+#### Segment Reprojection Error
+See https://github.com/SoccerNet/sn-calibration for details on the evaluation metric.
+
+#### IoU, Projection error and Reprojection error:
+For the Homography Estimation evaluation, we adopt the approach outlined at https://github.com/ericsujw/KpSFR. Minor modifications of the used script can be seen in
+```model/metrics.py ```
+
+<hr>
+
+### Evaluation
+We provide scripts ```scripts/``` to reproduce the paper's results for the presented approach.
+Make sure to change the dataset location on the bash scripts, default is set as ```"datasets/calibration-2023/"```, and the location of model weights, default is set as ```weights/MV_kp```.
+
+```shell
+#Multi-view camera parameter estimation for SN-Calib-2023
+chmod +x scripts/run_pipeline_sn23.sh
+./scripts/run_pipeline_sn23.sh
+
+#Single-view camera parameter estimation for SN-Calib-2022
+chmod +x scripts/run_pipeline_sn22.sh
+./scripts/run_pipeline_sn22.sh
+
+#WorldCup 2014 as camera parameter estimation task
+chmod +x scripts/run_pipeline_wc14_3D.sh
+./scripts/run_pipeline_wc14_3D.sh
+
+#WorldCup 2014 homography estimation task
+chmod +x scripts/run_pipeline_wc14.sh
+./scripts/run_pipeline_wc14.sh
+
+#TS-WorldCup homography estimation task
+chmod +x scripts/run_pipeline_tswc.sh
+./scripts/run_pipeline_tswc.sh
+```
+
+Task results will be printed on screen.
+
+<hr>
+
