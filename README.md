@@ -138,13 +138,13 @@ Task results will be printed on screen.
 ## Requirements
 ### [Conda Environment](https://docs.conda.io/en/latest/)
 ```shell
-conda env create -f NBJWCalib.yml
-conda activate NBJWCalib
+conda env create -f PnLCalib.yml
+conda activate PnLCalib
 ```
 
 ### PIP
 ```shell
-python -m venv env
+python -m venv PnLCalib
 source env/bin/activate
 pip install -r requirements.txt
 ```
