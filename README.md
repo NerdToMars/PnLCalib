@@ -9,7 +9,16 @@ Extension of the previous paper "No Bells, Just Whistles: Sports Field Registrat
 <p align="center"><img src=figures/FieldReconstruction-1.png  width=70% height=70%></p>
 </div>
 
-### Code to be released.
+### 🚀 Key Features
+
+- **Improved Keypoint and Line Detection**  
+  Enhanced models for faster and more accurate detection of keypoints and line extremities.
+
+- **Upgraded Camera Calibration Pipeline**  
+  Refined pipeline for better initial camera calibration performance.
+
+- **PnL Refinement Module**  
+  Added a powerful refinement module that leverages detected field lines for non-linear optimization, boosting calibration accuracy.
 
 ## Contents
 - [Abstract](#abstract)
