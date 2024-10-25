@@ -118,7 +118,7 @@ chmod +x scripts/run_pipeline_sn23.sh
 chmod +x scripts/run_pipeline_sn22.sh
 ./scripts/run_pipeline_sn22.sh
 
-#WorldCup 2014 as camera parameter estimation task
+#WorldCup 2014 camera parameter estimation task
 chmod +x scripts/run_pipeline_wc14_3D.sh
 ./scripts/run_pipeline_wc14_3D.sh
 
@@ -132,6 +132,22 @@ chmod +x scripts/run_pipeline_tswc.sh
 ```
 
 Task results will be printed on screen.
+
+<hr>
+
+## Requirements
+### [Conda Environment](https://docs.conda.io/en/latest/)
+```shell
+conda env create -f NBJWCalib.yml
+conda activate NBJWCalib
+```
+
+### PIP
+```shell
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
 
 <hr>
 
