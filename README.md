@@ -56,15 +56,16 @@ Multiple-View
 <hr>
 
 ## Inference
+Remove ```--pnl_refine``` argument for a base inference.
 
 On video:
 ``` shell
-python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --input_path "examples/iniesta_sample.mp4" --input_type "video" --display
+python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --pnl_refine --input_path "examples/iniesta_sample.mp4" --input_type "video" --display
 ```
 
 On image:
 ``` shell
-python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --input_path "examples/messi_sample.png" --input_type "image" --save_path "examples/messi_results.png"
+python inference.py --weights_kp "SV_kp" --weights_line "SV_lines" --pnl_refine --input_path "examples/messi_sample.png" --input_type "image" --save_path "examples/messi_results.png"
 ```
 <hr>
 
