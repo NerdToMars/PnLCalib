@@ -457,6 +457,9 @@ class FramebyFrameCalib:
                           "y_focal_length": self.calibration[1,1],
                           "principal_point": [self.principal_point[0], self.principal_point[1]],
                           "position_meters": [self.position[0], self.position[1], self.position[2]],
+                          "rotation_matrix": [[self.rotation[0, 0], self.rotation[0, 1], self.rotation[0, 2]],
+                                              [self.rotation[1, 0], self.rotation[1, 1], self.rotation[1, 2]],
+                                              [self.rotation[2, 0], self.rotation[2, 1], self.rotation[2, 2]]],
                           "radial_distortion": [0., 0., 0., 0., 0., 0.],
                           "tangential_distortion": [0., 0.],
                           "thin_prism_distortion": [0., 0., 0., 0.]}

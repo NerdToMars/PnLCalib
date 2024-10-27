@@ -9,6 +9,7 @@ import numpy as np
 
 from tqdm import tqdm
 
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from utils.utils_calib import FramebyFrameCalib
 from model.metrics import calc_iou_part, calc_iou_whole_with_poly, calc_reproj_error, calc_proj_error
 

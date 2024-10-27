@@ -14,7 +14,8 @@ import torchvision.transforms.functional as f
 from tqdm import tqdm
 from PIL import Image
 
-sys.path.append("../")
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 from model.cls_hrnet import get_cls_net
 from model.cls_hrnet_l import get_cls_net as get_cls_net_l
 from utils.utils_keypoints import KeypointsDB
@@ -45,6 +46,8 @@ def parse_args():
                         help="Model (lines) weigths to use")
     parser.add_argument("--cuda", type=str, default="cuda:0",
                         help="CUDA device index (default: 'cuda:0')")
+    parser.add_argument("--kp_th", type=float, default="0.1")
+    parser.add_argument("--line_th", type=float, default="0.1")
     parser.add_argument("--max_reproj_err", type=float, default="50")
     parser.add_argument("--main_cam_only", action='store_true')
     parser.add_argument('--use_gt', action='store_true', help='Use ground truth annotations (default: False)')
@@ -66,22 +69,22 @@ if __name__ == "__main__":
         #                                             int(match_info[file.split('/')[-1]]['replay_time'])]
 
     if args.main_cam_only:
-        zip_name = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_main.zip'
+        zip_name = args.save_dir + args.split + '_main.zip'
     else:
-        zip_name = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '.zip'
+        zip_name = args.save_dir + args.split + '.zip'
 
     if args.use_gt:
         if args.main_cam_only:
-            zip_name_pred = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_main_gt.zip'
+            zip_name_pred = args.save_dir + args.split + '_main_gt.zip'
         else:
-            zip_name_pred = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_gt.zip'
+            zip_name_pred = args.save_dir + args.split + '_gt.zip'
     else:
         if args.main_cam_only:
-            zip_name_pred = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_main_pred.zip'
+            zip_name_pred = args.save_dir + args.split + '_main_pred.zip'
         else:
-            zip_name_pred = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_pred.zip'
+            zip_name_pred = args.save_dir + args.split + '_pred.zip'
 
-    print(f"Saving results in {args.save_dir + args.root_dir.split('/')[-2] + '/'}")
+    print(f"Saving results in {args.save_dir}")
     print(f"file: {zip_name_pred}")
 
     if args.use_gt:
@@ -156,15 +159,15 @@ if __name__ == "__main__":
 
                     kp_coords = get_keypoints_from_heatmap_batch_maxpool(heatmaps[:, :-1, :, :])
                     line_coords = get_keypoints_from_heatmap_batch_maxpool_l(heatmaps_l[:, :-1, :, :])
-                    kp_dict = coords_to_dict(kp_coords, threshold=0.0070)
-                    lines_dict = coords_to_dict(line_coords, threshold=0.1513)
+                    kp_dict = coords_to_dict(kp_coords, threshold=args.kp_th)
+                    lines_dict = coords_to_dict(line_coords, threshold=args.line_th)
                     kp_dict, lines_dict = complete_keypoints(kp_dict[0], lines_dict[0], w=w, h=h)
 
                     cam.update(kp_dict, lines_dict)
                     final_params_dict = cam.heuristic_voting(refine_lines=True)
 
                 if final_params_dict:
-                    if final_params_dict['rep_err'] <= 85:
+                    if final_params_dict['rep_err'] <= args.max_reproj_err:
                         complete += 1
                         cam_params = final_params_dict['cam_params']
                         json_data = json.dumps(cam_params)

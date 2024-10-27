@@ -186,7 +186,7 @@ def process_input(input_path, input_type, model_kp, model_line, kp_threshold, li
             print(f"Error: Unable to read the image {input_path}")
             return
 
-        final_params_dict = inference(cam, frame, model, model_l, kp_threshold, line_threshold)
+        final_params_dict = inference(cam, frame, model, model_l, kp_threshold, line_threshold, pnl_refine)
         if final_params_dict is not None:
             P = projection_from_cam_params(final_params_dict)
             projected_frame = project(frame, P)

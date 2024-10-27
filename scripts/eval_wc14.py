@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import glob
-from typing import final
 
 import torch
 import zipfile
@@ -10,7 +9,9 @@ import argparse
 import numpy as np
 
 from tqdm import tqdm
+from typing import final
 
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from utils.utils_calib import FramebyFrameCalib
 from model.metrics import calc_iou_part, calc_iou_whole_with_poly, calc_reproj_error, calc_proj_error
 
@@ -118,13 +119,12 @@ if __name__ == "__main__":
         lines_dict = {int(key): value for key, value in lines_dict.items()}
 
         cam.update(keypoints_dict, lines_dict)
-        #homography_pred = cam.get_homography_from_ground_plane(use_ransac=0, inverse=True)
         final_dict = cam.heuristic_voting_ground(refine_lines=True)
+
         if final_dict is None:
-        #if homography_pred is None:
             missed += 1
             continue
-        #homography_pred = cam.get_homography_from_3D_projection(use_ransac=5., inverse=True)
+
         homography_pred = final_dict["homography"]
         homography_pred = convert_homography_SN_to_WC14(homography_pred)
 

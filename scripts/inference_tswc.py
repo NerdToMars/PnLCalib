@@ -14,7 +14,7 @@ import torchvision.transforms.functional as f
 from tqdm import tqdm
 from PIL import Image
 
-sys.path.append("../")
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from model.cls_hrnet import get_cls_net
 from model.cls_hrnet_l import get_cls_net as get_cls_net_l
 from utils.utils_heatmap import get_keypoints_from_heatmap_batch_maxpool, get_keypoints_from_heatmap_batch_maxpool_l, \
@@ -41,6 +41,8 @@ def parse_args():
                         help="Model (lines) weigths to use")
     parser.add_argument("--cuda", type=str, default="cuda:0",
                         help="CUDA device index (default: 'cuda:0')")
+    parser.add_argument("--kp_th", type=float, default="0.1")
+    parser.add_argument("--line_th", type=float, default="0.1")
     parser.add_argument("--batch", type=int, default=1, help="Batch size")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of workers")
 
@@ -92,7 +94,7 @@ if __name__ == "__main__":
     files = get_files(seqs)
     homographies = get_homographies(seqs)
 
-    zip_name_pred = args.save_dir + args.root_dir.split('/')[-2] + '/' + args.split + '_pred.zip'
+    zip_name_pred = args.save_dir + args.split + '_pred.zip'
 
     device = torch.device(args.cuda if torch.cuda.is_available() else 'cpu')
     cfg = yaml.safe_load(open(args.cfg, 'r'))
@@ -126,8 +128,8 @@ if __name__ == "__main__":
 
                 kp_coords = get_keypoints_from_heatmap_batch_maxpool(heatmaps[:,:-1,:,:])
                 line_coords = get_keypoints_from_heatmap_batch_maxpool_l(heatmaps_l[:,:-1,:,:])
-                kp_dict = coords_to_dict(kp_coords, threshold=0.2448, ground_plane_only=True)
-                lines_dict = coords_to_dict(line_coords, threshold=0.8583, ground_plane_only=True)
+                kp_dict = coords_to_dict(kp_coords, threshold=args.kp_th, ground_plane_only=True)
+                lines_dict = coords_to_dict(line_coords, threshold=args.line_th, ground_plane_only=True)
                 final_kp_dict, final_lines_dict = complete_keypoints(kp_dict[0], lines_dict[0],
                                                                      w=w, h=h, normalize=True)
                 final_dict = {'kp': final_kp_dict, 'lines': final_lines_dict}
