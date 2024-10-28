@@ -4,7 +4,7 @@ Extension of the previous paper "No Bells, Just Whistles: Sports Field Registrat
 <div align="center">
     
 
-[![Conference](https://img.shields.io/badge/CVPRW-2024-6b8bc7.svg?style=for-the-badge)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4998149)
+[![Conference](https://img.shields.io/badge/Preprint-SSRN-6b8bc7.svg?style=for-the-badge)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4998149)
     
 <p align="center"><img src=figures/FieldReconstruction-1.png  width=70% height=70%></p>
 </div>
