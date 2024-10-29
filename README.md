@@ -4,7 +4,7 @@ Extension of the previous paper "No Bells, Just Whistles: Sports Field Registrat
 <div align="center">
     
 
-[![arXiv](https://img.shields.io/badge/arXiv-2404.08401-b31b1b.svg?style=for-the-badge)](https://arxiv.org/abs/2404.08401)
+[![Conference](https://img.shields.io/badge/Preprint-SSRN-6b8bc7.svg?style=for-the-badge)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4998149)
     
 <p align="center"><img src=figures/FieldReconstruction-1.png  width=70% height=70%></p>
 </div>
@@ -155,6 +155,7 @@ python train.py --cfg config/hrnetv2_w48.yaml --dataset SoccerNet --root_dir dat
 ```shell
 python train_l.py --cfg config/hrnetv2_w48_l.yaml --dataset SoccerNet --root_dir datasets/calibration-2023/ --save_dir weights/MV_line_exp1 
 ```
+Options for `--dataset` argument are: `[SoccerNet, WorldCup2014, TSWorldCup]`
 
 Additional available arguments for both keypoint and line detection training:
 - `--cuda`: CUDA device index (default: 'cuda:0')
