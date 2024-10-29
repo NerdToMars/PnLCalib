@@ -9,8 +9,6 @@ import torch.nn as nn
 
 from datetime import datetime
 
-sys.path.append("../")
-
 from utils.utils_train import train_one_epoch, validation_step
 from model.dataloader import SoccerNetCalibrationDataset, WorldCup2014Dataset, TSWorldCupDataset
 from model.cls_hrnet import get_cls_net
@@ -57,9 +55,9 @@ if __name__ == "__main__":
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     run = wandb.init(
+        mode= "online" if args.wandb_project != '' else "offline",
         project=args.wandb_project,
         config={
-            "mode": "online" if args.wandb_project != '' else "online",
             "batch": args.batch,
             "learning_rate_0": args.lr0,
             "patience": args.patience,

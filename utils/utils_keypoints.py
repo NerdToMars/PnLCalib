@@ -111,9 +111,7 @@ class KeypointsDB(object):
 
         self.data = data
         self.image = image
-        #_, self.h, self.w = self.image.size()
-        self.h, self.w, _ = self.image.shape
-        #self.w, self.h = size_out
+        _, self.h, self.w = self.image.size()
         self.size = (self.w, self.h)
 
         self.h_extra = self.h * 0.5

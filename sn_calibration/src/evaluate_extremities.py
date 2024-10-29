@@ -1,10 +1,14 @@
 import argparse
 import json
+import sys
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+
+sys.path.append("sn_calibration")
+sys.path.append("sn_calibration/src")
 
 from soccerpitch import SoccerPitch
 

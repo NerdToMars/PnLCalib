@@ -1,6 +1,6 @@
+import numpy as np
 import zipfile
 import argparse
-import numpy as np
 import json
 import sys
 

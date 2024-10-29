@@ -96,7 +96,6 @@ class LineKeypointsDB(object):
         self.data = data
         self.image = image
         _, self.h, self.w = self.image.size()
-        # self.h, self.w, _ = self.image.shape
         self.size = (self.w, self.h)
 
         self.num_channels = len(self.lines_list)
