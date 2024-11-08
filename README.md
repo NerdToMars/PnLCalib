@@ -186,18 +186,8 @@ pip install -r requirements.txt
 
 <hr>
 
-## Citation
-```shell
-@misc{gutiérrezpérez2024pnlcalibsportsfieldregistration,
-      title={PnLCalib: Sports Field Registration via Points and Lines Optimization}, 
-      author={Marc Gutiérrez-Pérez and Antonio Agudo},
-      year={2024},
-      eprint={2404.08401},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2404.08401}, 
-}
-```
+## Ctation
+Gutiérrez-Pérez, Marc and Agudo, Antonio, Pnlcalib: Sports Field Registration Via Points and Lines Optimization (October 01, 2024). Available at SSRN: https://ssrn.com/abstract=4998149 or http://dx.doi.org/10.2139/ssrn.4998149
 
 <hr>
 
