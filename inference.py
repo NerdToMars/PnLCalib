@@ -80,7 +80,7 @@ def inference(cam, frame, model, model_l, kp_threshold, line_threshold, pnl_refi
     line_coords = get_keypoints_from_heatmap_batch_maxpool_l(heatmaps_l[:,:-1,:,:])
     kp_dict = coords_to_dict(kp_coords, threshold=kp_threshold)
     lines_dict = coords_to_dict(line_coords, threshold=line_threshold)
-    kp_dict, lines_dict = complete_keypoints(kp_dict[0], lines_dict[0], w=w, h=h)
+    kp_dict, lines_dict = complete_keypoints(kp_dict[0], lines_dict[0], w=w, h=h, normalize=True)
 
     cam.update(kp_dict, lines_dict)
     final_params_dict = cam.heuristic_voting(refine_lines=pnl_refine)
