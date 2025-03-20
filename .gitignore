@@ -1,0 +1,18 @@
+
+datasets/
+
+# python env
+.venv/
+
+# pytorch model
+*.pth
+*.pth.tar
+
+# python env
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+wandb/

@@ -240,6 +240,8 @@ def get_keypoints_from_heatmap_batch_maxpool_l(
     pad = int((kernel-1)/2)
 
     max_pooled_heatmap = torch.nn.functional.max_pool2d(heatmap, kernel, stride=1, padding=pad)
+    print(max_pooled_heatmap.shape)
+
     # if the value equals the original value, it is the local maximum
     local_maxima = max_pooled_heatmap == heatmap
 

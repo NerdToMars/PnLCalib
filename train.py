@@ -15,7 +15,7 @@ from model.cls_hrnet import get_cls_net
 from model.losses import MSELoss
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-warnings.filterwarnings("ignore", category=np.RankWarning)
+# warnings.filterwarnings("ignore", category=np.RankWarning)
 
 
 def parse_args():

@@ -163,7 +163,9 @@ class KeypointsDB(object):
         else:
             fig, ax = plt.subplots(figsize=(scale*15, scale*7.5))
 
-        ax.imshow(self.image)
+        # convert image to numpy
+        image = self.image.numpy().squeeze().transpose(1, 2, 0)
+        ax.imshow(image)
 
         for kp in self.keypoints.keys():
             if self.keypoints[kp]:

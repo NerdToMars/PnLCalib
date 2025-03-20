@@ -1,3 +1,4 @@
+import copy
 import cv2
 import yaml
 import torch
@@ -63,14 +64,18 @@ def projection_from_cam_params(final_params_dict):
 
 
 def inference(cam, frame, model, model_l, kp_threshold, line_threshold, pnl_refine):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = Image.fromarray(frame)
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    print("rgb_frame shape:", rgb_frame.shape)
+    frame = Image.fromarray(rgb_frame)
 
     frame = f.to_tensor(frame).float().unsqueeze(0)
     _, _, h_original, w_original = frame.size()
-    frame = frame if frame.size()[-1] == 960 else transform2(frame)
-    frame = frame.to(device)
+    origin_frame = frame if frame.size()[-1] == 960 else transform2(frame)
+    frame = origin_frame.to(device)
     b, c, h, w = frame.size()
+
+    # resize rgb_frame to frame size
+    rgb_frame = cv2.resize(rgb_frame, (w, h))
 
     with torch.no_grad():
         heatmaps = model(frame)
@@ -78,6 +83,13 @@ def inference(cam, frame, model, model_l, kp_threshold, line_threshold, pnl_refi
 
     kp_coords = get_keypoints_from_heatmap_batch_maxpool(heatmaps[:,:-1,:,:])
     line_coords = get_keypoints_from_heatmap_batch_maxpool_l(heatmaps_l[:,:-1,:,:])
+
+
+    # draw line on frame to visualize
+    visualize_line(rgb_frame, line_coords, True)
+
+    visualize_keypoints(rgb_frame, kp_coords, True)
+
     kp_dict = coords_to_dict(kp_coords, threshold=kp_threshold)
     lines_dict = coords_to_dict(line_coords, threshold=line_threshold)
     kp_dict, lines_dict = complete_keypoints(kp_dict[0], lines_dict[0], w=w, h=h, normalize=True)
@@ -200,6 +212,124 @@ def process_input(input_path, input_type, model_kp, model_line, kp_threshold, li
             plt.axis('off')
             plt.show()
 
+
+def visualize_line(input_frame, line_coords, visualize=False):
+    """
+    Visualize detected line endpoints as dots on the RGB frame
+    Args:
+        frame: RGB frame to draw on
+        line_coords: Coordinates of detected lines: List[List[tensor]]
+            Structure: [batch][line_index][2, 3] where each line has 
+            [[x1, y1, conf1], [x2, y2, conf2]] format
+        visualize: Boolean flag to enable/disable visualization
+    Returns:
+        frame: Frame with visualized dots if visualize=True, otherwise original frame
+    """
+    if not visualize:
+        return input_frame
+    
+    height, width = input_frame.shape[:2]
+    frame = input_frame.copy()
+    print("line_coords shape:", np.array(line_coords).shape)
+    
+    # Assuming line_coords is a batch of line detections
+    for batch_idx, batch in enumerate(line_coords):
+        print(f"Processing batch {batch_idx}, contains {len(batch)} lines")
+        for line_idx, line in enumerate(batch):
+            if line is not None:
+                # Convert tensor to numpy array
+                line = line.cpu().numpy()
+                print(f"Line {line_idx} coords:", line)
+                
+                # Extract start and end points
+                # line shape is [2, 3] where each row is [x, y, confidence]
+                x1, y1 = int(line[0][0]), int(line[0][1])  # Start point
+                x2, y2 = int(line[1][0]), int(line[1][1])  # End point
+                
+                # Draw dots with labels
+                frame = cv2.circle(frame, (x1, y1), radius=5, color=(255, 0, 0), thickness=-1)  # Start point (red)
+                frame = cv2.circle(frame, (x2, y2), radius=5, color=(0, 0, 255), thickness=-1)  # End point (blue)
+                
+                # Add text labels
+                frame = cv2.putText(frame, f'{line_idx}s', (x1+5, y1+5), cv2.FONT_HERSHEY_SIMPLEX, 
+                           0.5, (255, 0, 0), 1)
+                frame = cv2.putText(frame, f'{line_idx}e', (x2+5, y2+5), cv2.FONT_HERSHEY_SIMPLEX, 
+                           0.5, (0, 0, 255), 1)
+    
+    cv2.imwrite("lines.png", frame)
+    return frame
+
+
+def visualize_keypoints(input_frame, kp_coords, visualize=False):
+    """
+    Visualize detected keypoints as dots on the RGB frame
+    Args:
+        input_frame: RGB frame to draw on
+        kp_coords: Coordinates of detected keypoints
+        visualize: Boolean flag to enable/disable visualization
+    Returns:
+        frame: Frame with visualized keypoints if visualize=True, otherwise original frame
+    """
+    if not visualize:
+        return input_frame
+    
+    height, width = input_frame.shape[:2]
+    frame = copy.deepcopy(input_frame)
+    print("frame data type:", type(frame))
+
+    # image tensor to numpy
+    # frame = frame.cpu().numpy()
+    print("frame shape:", frame.shape)
+
+    # frame = frame.astype(np.uint8)
+    
+    try:
+        print("kp_coords structure:", type(kp_coords), len(kp_coords))
+        
+        # Assuming kp_coords is a batch of keypoint detections
+        for batch_idx, batch in enumerate(kp_coords):
+            print(f"Processing keypoint batch {batch_idx}, contains {len(batch)} keypoints")
+            for kp_idx, kp in enumerate(batch):
+                if kp is not None:
+                    # Convert tensor to numpy array if it's a tensor
+                    if isinstance(kp, torch.Tensor):
+                        kp = kp.cpu().numpy()
+                    
+                    print(f"Keypoint {kp_idx} coords shape:", kp.shape)
+                    print(f"Keypoint {kp_idx} coords:", kp)
+                    
+                    # Handle different keypoint formats
+                    if len(kp.shape) == 1:  # Simple [x, y, conf] format
+                        x, y, conf = int(kp[0]), int(kp[1]), kp[2]
+                    elif len(kp.shape) == 2:  # More complex format like [[x, y, conf]]
+                        x, y, conf = int(kp[0][0]), int(kp[0][1]), kp[0][2]
+                    else:
+                        print(f"Unsupported keypoint format for keypoint {kp_idx}")
+                        continue
+                    
+                    # Only draw keypoints with sufficient confidence
+                    if conf > 0.01:  # Adjust threshold as needed
+                        print(f"Drawing keypoint {kp_idx} at ({x}, {y}) with confidence {conf}")
+                        # Draw keypoint as a green circle
+                        cv2.circle(frame, (x, y), radius=7, color=(0, 255, 0), thickness=-1)
+                        
+                        # Add keypoint index as label
+                        cv2.putText(frame, f'{kp_idx}', (x+5, y+5), cv2.FONT_HERSHEY_SIMPLEX, 
+                                   0.7, (255, 255, 255), 2)
+                        # cv2.imwrite(f"keypoints{kp_idx}.png", frame)
+    except Exception as e:
+        print(f"Error in visualize_keypoints: {e}")
+        import traceback
+        traceback.print_exc()
+    cv2.imwrite("keypoints.png", frame)
+    # plt.figure(figsize=(12, 8))
+    # plt.imshow(frame)
+    # plt.axis('off')
+    # plt.title("Detected Keypoints")
+    # plt.show()
+    return frame
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Process video or image and plot lines on each frame.")
@@ -208,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument("--kp_threshold", type=float, default=0.3434, help="Threshold for keypoint detection.")
     parser.add_argument("--line_threshold", type=float, default=0.7867, help="Threshold for line detection.")
     parser.add_argument("--pnl_refine", action="store_true", help="Enable PnL refinement module.")
-    parser.add_argument("--device", type=str, default="cuda:0", help="CPU or CUDA device index")
+    parser.add_argument("--device", type=str, default="cpu", help="CPU or CUDA device index")
     parser.add_argument("--input_path", type=str, required=True, help="Path to the input video or image file.")
     parser.add_argument("--input_type", type=str, choices=['video', 'image'], required=True,
                         help="Type of input: 'video' or 'image'.")
