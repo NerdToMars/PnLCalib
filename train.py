@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument("--save_dir", type=str, required=True, help="Save directory")
     parser.add_argument("--cuda", type=str, default="cuda:0",
                         help="CUDA device index (default: 'cuda:0')")
-    parser.add_argument("--batch", type=int, default=2,
+    parser.add_argument("--batch", type=int, default=1,
                         help="Batch size for train / val (default: 2)")
     parser.add_argument("--num_workers", type=int, default=2,
                         help="Number of workers for data loading (default: 4)")
@@ -42,7 +42,7 @@ def parse_args():
                         help="Patience parameter for lr scheduler (default: 8)")
     parser.add_argument("--factor", type=float, default=0.5,
                         help="Reducing factor for lr scheduler (default: 0.5)")
-    parser.add_argument("--wandb_project", type=str, default='',
+    parser.add_argument("--wandb_project", type=str, default='soccer-net-calibration',
                         help="Wandb project name")
 
     args = parser.parse_args()

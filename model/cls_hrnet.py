@@ -248,6 +248,12 @@ blocks_dict = {
 class HighResolutionNet(nn.Module):
 
     def __init__(self, config, **kwargs):
+        # get existing device if kwargs['device'] is not None
+        if kwargs['device'] is not None:
+            self.device = kwargs['device']
+        else:
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
         self.inplanes = 64
         extra = config['MODEL']['EXTRA']
         super(HighResolutionNet, self).__init__()
@@ -457,12 +463,13 @@ class HighResolutionNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
         if pretrained != '':
             if os.path.isfile(pretrained):
-                pretrained_dict = torch.load(pretrained)
+                device = self.device
+                pretrained_dict = torch.load(pretrained, map_location=device)
                 logger.info('=> loading pretrained model {}'.format(pretrained))
                 print('=> loading pretrained model {}'.format(pretrained))
                 model_dict = self.state_dict()
                 pretrained_dict = {k: v for k, v in pretrained_dict.items()
-                                   if k in model_dict.keys()}
+                                   if k in model_dict.keys() and model_dict[k].shape == v.shape}
                 for k, _ in pretrained_dict.items():
                     logger.info(
                         '=> loading {} pretrained model {}'.format(k, pretrained))
