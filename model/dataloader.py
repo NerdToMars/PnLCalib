@@ -52,6 +52,7 @@ class BasketballCourtDataset(Dataset):
         self.images = []
         self.annotations = []
         self.ellipse_point_labels = ["arc"]
+        self.image_db = None
 
         # Extract images and keypoints
         for image in root.findall(".//image"):
@@ -116,15 +117,19 @@ class BasketballCourtDataset(Dataset):
         # Load image
         img_path = os.path.join(self.img_dir, self.images[idx]["name"])
         image = Image.open(img_path)
+        # resize image to 960x540
+        # image = image.resize((960, 540))
 
         # Get points for this image: Dict[str, List[Dict[str, float]]]
         points = self.annotations[idx]
 
         # Apply transforms to the image
-        sample = self.transform({"image": image, "points": points})
+        sample = self.transform({"image": image, "data": points})
 
-        image_db = BasketballCourtKeypointsDB(sample["image"], sample["points"])
+        image_db = BasketballCourtKeypointsDB("NFHS", sample["image"], sample["data"])
         target, mask = image_db.get_tensor_w_mask()
+        self.image_db = image_db
+        # image_db.draw_keypoints(show_heatmap=True)
 
         return (
             sample["image"],

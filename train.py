@@ -11,6 +11,7 @@ from datetime import datetime
 
 from utils.utils_train import train_one_epoch, validation_step
 from model.dataloader import (
+    BasketballCourtDataset,
     SoccerNetCalibrationDataset,
     WorldCup2014Dataset,
     TSWorldCupDataset,
@@ -140,6 +141,21 @@ if __name__ == "__main__":
         validation_set = TSWorldCupDataset(
             args.root_dir, "test", transform=no_transforms
         )
+    elif dataset == "BasketballCourt":
+        from model.transforms import transforms, no_transforms, transforms_no_flip
+        import os
+
+        train_xml_dir = os.path.join(args.root_dir, "train", "annotations.xml")
+        train_img_dir = os.path.join(args.root_dir, "train")
+        training_set = BasketballCourtDataset(
+            train_xml_dir, train_img_dir, transform=transforms_no_flip
+        )
+
+        val_xml_dir = os.path.join(args.root_dir, "valid", "annotations.xml")
+        val_img_dir = os.path.join(args.root_dir, "valid")
+        validation_set = BasketballCourtDataset(
+            val_xml_dir, val_img_dir, transform=no_transforms
+        )
     else:
         sys.exit("Wrong dataset name. Options: [SoccerNet, WorldCup2014, TS-WorldCup]")
 
@@ -205,7 +221,7 @@ if __name__ == "__main__":
         else:
             loss_counter += 1
 
-        if loss_counter == 16:
+        if loss_counter == 36:
             print("Early stopping at epoch {}".format(epoch_number + 1))
             break
 

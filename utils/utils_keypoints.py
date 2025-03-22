@@ -117,17 +117,13 @@ class CourtDefinition(NamedTuple):
         key_points.append((0, -key_area_length + self.rim_center_offset))
         key_points_name.append("center_on_free_throw_line")
 
-        print(
-            f"center_to_three_point_limit_distance_x: {center_to_three_point_limit_distance_x}"
-        )
-        print(f"three_point_dist: {three_point_dist}")
         # Calculate intersection between three-point limit and three-point arc
         if center_to_three_point_limit_distance_x <= three_point_dist:
             y_intersection_to_rim_center = np.sqrt(
                 three_point_dist**2 - center_to_three_point_limit_distance_x**2
             ).item()
 
-            print(f"y_intersection_to_rim_center: {y_intersection_to_rim_center}")
+            # print(f"y_intersection_to_rim_center: {y_intersection_to_rim_center}")
 
             # Intersection between three-point limit and arc, left side
             key_points.append(
@@ -214,13 +210,81 @@ court_definitions = {     # | width  | height |   d    | dist , limit | width | 
 # https://en.wikipedia.org/wiki/Key_(basketball)
 
 # fmt: on
+
+
+# match between keypoints and label in annotations
+
+# label in annotations
+# [
+#     "left_corner",
+#     "right_corner",
+#     "left_three_point_on_base",
+#     "right_three_point_on_base",
+#     "left_end_free_throw_line",
+#     "right_end_free_throw_line",
+#     "left_end_three_point_arc",
+#     "right_end_three_point_arc",
+#     "middle_baseline",
+#     "middle_free_throw_line",
+#     "middle_three_point_arc",
+#     "arc",
+# ]
+LABELS_KEYPOINTS = {
+    "left_end_three_point_arc": "left_end_of_three_point_arc",
+    "right_end_three_point_arc": "right_end_of_three_point_arc",
+    "middle_three_point_arc": "center_on_arc",
+    "middle_free_throw_line": "center_on_free_throw_line",
+    "middle_baseline": "center_on_baseline",
+    "left_three_point_on_base": "three_point_limit_left",
+    "right_three_point_on_base": "three_point_limit_right",
+    "left_end_free_throw_line": "left_end_of_free_throw_line_in_free_throw_circle",
+    "right_end_free_throw_line": "right_end_of_free_throw_line_in_free_throw_circle",
+    "left_corner": "left_corner",
+    "right_corner": "right_corner",
+}
+
+SELECTED_LABELS = [
+    "left_corner",
+    "right_corner",
+    "left_end_three_point_arc",
+    "right_end_three_point_arc",
+    "left_three_point_on_base",
+    "right_three_point_on_base",
+    "left_end_free_throw_line",
+    "right_end_free_throw_line",
+]
+
+
 class BasketballCourtKeypointsDB(object):
-    def __init__(self, input_court_definition: str):
+    def __init__(
+        self,
+        input_court_definition: str,
+        image,
+        points,
+    ):
+        """
+        Args:
+            input_court_definition: str
+            image: Tensor
+            points: Dict[str, List[Dict[str, float]]]
+        """
+        assert input_court_definition in court_definitions.keys()
         self.court_definition = court_definitions[input_court_definition]
+        self.image = image  # [C, H, W]
+        self.points = points
+        self.keypoints_final = {}
+        self.mask_array = np.ones(9).astype(int)
+        _, self.h, self.w = self.image.size()
+        # self.w, self.h = 960, 540
+        self.size = (self.w, self.h)
+
+        self.proj_err_th = 5.0
 
         self.keypoint_world_coords_2D = (
             self.court_definition.get_keypoint_world_coords_2D()
         )
+
+        self.num_channels = 9
 
         self.keypoint_pair_list = [
             ["baseline", "Side line left"],
@@ -251,6 +315,161 @@ class BasketballCourtKeypointsDB(object):
             "baseline": ["center_on_baseline"],
             "free throw line": ["center_on_free_throw_line"],
         }
+
+    def get_main_keypoints(self):
+        for count, pair in enumerate(self.keypoint_pair_list):
+            if all(x in self.data.keys() for x in pair):
+                x, y = line_intersection(self.data, pair, self.w, self.h)
+                if not np.isnan(x):
+                    if 0 <= x < self.w and 0 <= y < self.h:
+                        self.keypoints[count + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": True,
+                            "close_to_frame": True,
+                            "retrieved": False,
+                        }
+                    elif (
+                        0 - self.w_extra <= x < self.w + self.w_extra
+                        and 0 - self.h_extra <= y < self.h + self.h_extra
+                    ):
+                        self.keypoints[count + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": False,
+                            "close_to_frame": True,
+                            "retrieved": False,
+                        }
+                    else:
+                        self.keypoints[count + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": False,
+                            "close_to_frame": False,
+                            "retrieved": False,
+                        }
+
+        for count, pair in enumerate(self.keypoint_aux_pair_list):
+            if all(x in self.data.keys() for x in pair):
+                x, y = line_intersection(self.data, pair, self.w, self.h)
+                if not np.isnan(x):
+                    if 0 <= x < self.w and 0 <= y < self.h:
+                        self.keypoints_aux[count + 57 + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": True,
+                            "close_to_frame": True,
+                            "retrieved": False,
+                        }
+                    elif (
+                        0 - self.w_extra <= x < self.w + self.w_extra
+                        and 0 - self.h_extra <= y < self.h + self.h_extra
+                    ):
+                        self.keypoints_aux[count + 57 + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": False,
+                            "close_to_frame": True,
+                            "retrieved": False,
+                        }
+                    else:
+                        self.keypoints_aux[count + 57 + 1] = {
+                            "x": x,
+                            "y": y,
+                            "in_frame": False,
+                            "close_to_frame": False,
+                            "retrieved": False,
+                        }
+
+    def get_full_keypoints(self):
+        self.keypoints_final = {}
+        # self.get_main_keypoints()
+        for points_name, points_data in self.points.items():
+            if points_name in SELECTED_LABELS:
+                key_point_name = LABELS_KEYPOINTS[points_name]
+                # check key point name index
+                key_point_index = self.keypoint_world_coords_2D[0].index(key_point_name)
+                for point_data in points_data:
+                    self.keypoints_final[key_point_index] = {
+                        "x": point_data["x"] * self.size[0],
+                        "y": point_data["y"] * self.size[1],
+                        "in_frame": True,
+                        "close_to_frame": False,
+                        "retrieved": False,
+                    }
+        self.keypoints_final = dict(sorted(self.keypoints_final.items()))
+        # print("there are ", len(self.keypoints_final), " keypoints")
+        # print("keypoints_final keys: ", self.keypoints_final.keys())
+
+    def get_tensor_w_mask(self):
+        self.get_full_keypoints()
+        heatmap_tensor = generate_gaussian_array_vectorized(
+            self.num_channels,
+            self.keypoints_final,
+            self.size,
+            down_ratio=2,
+            sigma=2,
+            proj_err_th=self.proj_err_th,
+        )
+        return heatmap_tensor, self.mask_array
+
+    def get_correspondences(
+        self,
+        # keypoints=True,
+        # keypoints_aux=True,
+        # keypoints1=False,
+        # keypoints2=False,
+        # keypoints3=False,
+        # only_ground_plane=False,
+    ):
+        self.get_full_keypoints()
+        world_points_p1, world_points_p2, world_points_p3 = [], [], []
+        img_points_p1, img_points_p2, img_points_p3 = [], [], []
+
+        for kp in self.keypoints_final.keys():
+            if self.keypoints_final[kp]["in_frame"]:
+                world_points_p1.append(self.keypoint_world_coords_2D[1][kp])
+                img_points_p1.append(self.keypoints_final[kp])
+
+        return world_points_p1, img_points_p1
+
+    def draw_keypoints(self, show_heatmap=False, scale=1):
+        if len(self.keypoints_final) == 0:
+            self.get_full_keypoints()
+
+        if show_heatmap:
+            heatmap_tensor = generate_gaussian_array_vectorized(
+                self.num_channels,
+                self.keypoints_final,
+                self.size,
+                down_ratio=2,
+                sigma=2,
+            )
+            fig, (ax, ax2) = plt.subplots(1, 2, figsize=(scale * 15, scale * 7.5))
+
+            s = ax2.matshow(heatmap_tensor[-1])
+            divider = make_axes_locatable(ax2)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            fig.colorbar(s, ax=ax2, cax=cax)
+
+        else:
+            fig, ax = plt.subplots(figsize=(scale * 15, scale * 7.5))
+
+        # convert image to numpy
+        image = self.image.numpy().squeeze().transpose(1, 2, 0)
+        ax.imshow(image)
+        for kp in self.keypoints_final.keys():
+            if self.keypoints_final[kp]:
+                x, y = self.keypoints_final[kp]["x"], self.keypoints_final[kp]["y"]
+                ax.text(x, y, s=kp, zorder=11)
+                ax.scatter(
+                    x,
+                    y,
+                    c="orange" if self.keypoints_final[kp]["retrieved"] else "r",
+                    s=scale * 10,
+                    zorder=10,
+                )
+        plt.show()
 
 
 class KeypointsDB(object):
