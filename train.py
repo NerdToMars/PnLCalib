@@ -153,10 +153,10 @@ if __name__ == "__main__":
         shuffle=False,
     )
 
-    model = get_cls_net(cfg)
-    if args.pretrained != "":
-        loaded_state = torch.load(args.pretrained, map_location=device)
-        model.load_state_dict(loaded_state)
+    model = get_cls_net(cfg, pretrained=args.pretrained, device=device)
+    # if args.pretrained != "":
+    #     loaded_state = torch.load(args.pretrained, map_location=device)
+    #     model.load_state_dict(loaded_state)
     model.to(device)
 
     loss_fn = nn.MSELoss(reduction="none")
