@@ -100,6 +100,7 @@ def create_court_grid(width=1524, height=834, grid_step=50):
 
 def visualize_with_rerun(
     court_points_3d,
+    image,
     colors=None,
     camera_position=None,
     camera_rotation=None,
@@ -133,52 +134,47 @@ def visualize_with_rerun(
         print("camera_position: ", camera_position)
         print("camera_rotation: ", camera_rotation)
         print("quaternion: ", quaternion)
+        # rr.log("court/camera", rr.Pinhole(focal_length=100, width=1920, height=1080))
 
         rr.log(
             "world/camera",
             rr.Transform3D(
                 translation=camera_position.flatten(),
-                rotation=quaternion,  # Rerun expects quaternion in [x, y, z, w] format
+                mat3x3=camera_rotation,
             ),
         )
 
-        # Add a visual indicator at the camera position
-        camera_pos = camera_position.flatten()
-        rr.log(
-            "world/camera_position",
-            rr.Points3D(
-                positions=np.array([camera_pos]),
-                colors=np.array([[255, 0, 0]]),
-                sizes=np.array([20.0]),
-            ),
-        )
-
-        # Also log the camera as a separate entity with transformation
-        rr.log(
-            "world/camera",
-            rr.Transform3D(
-                translation=camera_pos,
-                rotation=quaternion,
-                scale=np.array([1.0, 1.0, 1.0]),
-            ),
-        )
-
-        # Add a camera frustum visualization
-        if camera_matrix is not None:
-            focal_scaled = (
-                camera_matrix[0, 0] / 20.0
-            )  # Scale down for better visualization
-            rr.log(
-                "world/camera/view",
-                rr.Pinhole(focal_length=focal_scaled, width=1920, height=1080),
-            )
-        # rr.log(
-        #     "world/camera",
-        #     rr.Transform3D(transform=camera_transform),
-        # )
+        # # Add a camera frustum visualization
+        # if camera_matrix is not None:
+        #     focal_scaled = (
+        #         camera_matrix[0, 0] / 20.0
+        #     )  # Scale down for better visualization
+        #     rr.log(
+        #         "court/camera/view",
+        #         rr.Pinhole(focal_length=focal_scaled, width=1920, height=1080),
+        #     )
 
         # Optional: Add a simple camera frustum visualization
-        rr.log("world/camera", rr.Pinhole(focal_length=1000, width=1920, height=1080))
+        img_size = image.shape[1], image.shape[0]
+        focal_length = (camera_matrix[0, 0], camera_matrix[1, 1])
+        rr.log(
+            "world/camera",
+            rr.Pinhole(
+                focal_length=focal_length, width=img_size[0], height=img_size[1]
+            ),
+        )
+        rr.log(
+            "world/camera",
+            rr.Image(image, width=img_size[0], height=img_size[1]),
+        )
+
+        # rr.log(
+        #     "world/camera",
+        #     rr.Transform3D(
+        #         translation=camera_position.flatten(),
+        #         rotation=quaternion,  # Rerun expects quaternion in [x, y, z, w] format
+        #     ),
+        # )
 
     # Create a 3D coordinate axes
     rr.log(
@@ -385,7 +381,12 @@ def test_basketball_court_dataloader():
     try:
         print("Using Rerun for visualization...")
         visualize_with_rerun(
-            court_points_3d, colors, camera_position, rotation_matrix.T, camera_matrix
+            court_points_3d,
+            image,
+            colors,
+            camera_position,
+            rotation_matrix.T,
+            camera_matrix,
         )
     except ImportError:
         print("Rerun not found, using matplotlib for visualization...")
