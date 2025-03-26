@@ -144,16 +144,6 @@ def visualize_with_rerun(
             ),
         )
 
-        # # Add a camera frustum visualization
-        # if camera_matrix is not None:
-        #     focal_scaled = (
-        #         camera_matrix[0, 0] / 20.0
-        #     )  # Scale down for better visualization
-        #     rr.log(
-        #         "court/camera/view",
-        #         rr.Pinhole(focal_length=focal_scaled, width=1920, height=1080),
-        #     )
-
         # Optional: Add a simple camera frustum visualization
         img_size = image.shape[1], image.shape[0]
         focal_length = (camera_matrix[0, 0], camera_matrix[1, 1])
@@ -167,14 +157,6 @@ def visualize_with_rerun(
             "world/camera",
             rr.Image(image, width=img_size[0], height=img_size[1]),
         )
-
-        # rr.log(
-        #     "world/camera",
-        #     rr.Transform3D(
-        #         translation=camera_position.flatten(),
-        #         rotation=quaternion,  # Rerun expects quaternion in [x, y, z, w] format
-        #     ),
-        # )
 
     # Create a 3D coordinate axes
     rr.log(
@@ -273,6 +255,225 @@ def visualize_with_matplotlib(court_points_3d, colors=None, camera_position=None
     plt.show()
 
 
+def test_basketball_court_stereo():
+    # rr.init("Basketball Court 3D Visualization", spawn=True)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset = BasketballCourtDataset(
+        xml_file=os.path.join(current_dir, "datasets/annotations.xml"),
+        img_dir=os.path.join(current_dir, "datasets/"),
+        transform=no_transforms,
+    )
+
+    right_img, right_heatmap, right_mask = dataset.__getitem__(0)
+    right_world_points, right_image_points = dataset.image_db.get_correspondences()
+    right_image_points = np.array(
+        [[point["x"], point["y"]] for point in right_image_points]
+    )
+
+    left_img, left_heatmap, left_mask = dataset.__getitem__(3)
+    left_world_points, left_image_points = dataset.image_db.get_correspondences()
+    left_image_points = np.array(
+        [[point["x"], point["y"]] for point in left_image_points]
+    )
+
+    F, mask = cv2.findFundamentalMat(
+        right_image_points, left_image_points, cv2.FM_LMEDS
+    )
+    print("F: ", F)
+
+    K_flat = [
+        1911.8533121729813,
+        -1.2057610757951638,
+        1908.9765226798836,
+        0.0,
+        1909.2967489628422,
+        1096.4811450057355,
+        0.0,
+        0.0,
+        1.0,
+    ]
+
+    # Reshape into 3x3 matrix
+    camera_matrix = np.array(
+        [
+            [K_flat[0], K_flat[1], K_flat[2]],
+            [K_flat[3], K_flat[4], K_flat[5]],
+            [K_flat[6], K_flat[7], K_flat[8]],
+        ],
+        dtype=np.float32,
+    )
+
+    E = camera_matrix.T @ F @ camera_matrix
+    print("E: ", E)
+
+    # recoverpose
+    retval, R, t, pose_mask = cv2.recoverPose(E, right_image_points, left_image_points)
+    print("retval: ", retval)
+    print("R: ", R)
+    print("t: ", t)  # need to scale, but the scale is unknown
+    print("pose_mask: ", pose_mask)
+
+    # obtain rotation matrix and translation vector from E
+    rotation_matrix, rotation_matrix_2, translation_vector = cv2.decomposeEssentialMat(
+        E
+    )
+    print("From E: rotation_matrix: ", rotation_matrix)
+    print("From E: rotation_matrix_2: ", rotation_matrix_2)
+    print("From E: translation_vector: ", translation_vector)
+
+    # obtain transform between right and left image based on the fundamental matrix
+
+    print(mask)
+    assert False
+
+    # find homography between right and left images
+    # H = cv2.findHomography(right_image_points, left_image_points)
+
+
+def test_basketball_court_single_left():
+    # rr.init("Basketball Court 3D Visualization", spawn=True)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset = BasketballCourtDataset(
+        xml_file=os.path.join(current_dir, "datasets/annotations.xml"),
+        img_dir=os.path.join(current_dir, "datasets/"),
+        transform=no_transforms,
+    )
+
+    # 0: court wide right
+    # 1: court normal left
+    left_img, left_heatmap, left_mask = dataset.__getitem__(1)
+    left_img = left_img.cpu().numpy()
+    left_img = left_img.transpose(1, 2, 0)
+
+    plt.imshow(left_img)
+    plt.show()
+
+    left_world_points, left_image_points = dataset.image_db.get_correspondences()
+    left_image_points = np.array(
+        [[point["x"], point["y"]] for point in left_image_points]
+    )
+
+    # offset world points, x + 13, y + 14
+    left_world_points = np.array(left_world_points)
+    left_world_points[:, 0] += 1300
+    left_world_points[:, 1] += 1400
+
+    # find homography between left and right images
+    H, _ = cv2.findHomography(left_image_points, left_world_points)
+    print("Homography found: ", H)
+    left_H = np.array(
+        [[-5.63153211e-01, -3.30458224e-01,  3.44071469e+02],
+ [ 4.86841308e-01,  1.15285133e-01, -2.32187267e+03],
+ [ 2.10392713e-05, -1.59684240e-03,  1.00000000e+00]],
+        dtype=np.float32,
+    )
+
+    # apply the homography matrix to the left image
+    left_img_remapped = cv2.warpPerspective(
+        left_img, left_H, (left_img.shape[0], left_img.shape[0])
+    )
+
+    print("H left: ", left_H)
+    plt.imshow(left_img_remapped)
+    # RGB is float within 0,1,  covert to uint8
+    left_img_remapped = (left_img_remapped * 255).astype(np.uint8)
+    cv2.imwrite("left_img_remapped.png", left_img_remapped)
+    plt.show()
+
+    assert False
+
+
+def test_basketball_court_single():
+    # rr.init("Basketball Court 3D Visualization", spawn=True)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset = BasketballCourtDataset(
+        xml_file=os.path.join(current_dir, "datasets/annotations.xml"),
+        img_dir=os.path.join(current_dir, "datasets/"),
+        transform=no_transforms,
+    )
+
+    # 0: court wide right
+    # 1: court normal left
+    right_img, right_heatmap, right_mask = dataset.__getitem__(2)
+    right_img = right_img.cpu().numpy()
+    right_img = right_img.transpose(1, 2, 0)
+
+    plt.imshow(right_img)
+    plt.show()
+
+    right_world_points, right_image_points = dataset.image_db.get_correspondences()
+    right_image_points = np.array(
+        [[point["x"], point["y"]] for point in right_image_points]
+    )
+
+    # offset world points, x + 13, y + 14
+    right_world_points = np.array(right_world_points)
+    right_world_points[:, 0] += 1300
+    right_world_points[:, 1] += 1400
+
+    reference_R = np.array(
+        [
+            [0.86434823, -0.50258465, 0.01762962],
+            [-0.10081097, -0.20750703, -0.97302517],
+            [0.49268579, 0.83925532, -0.23002438],
+        ],
+        dtype=np.float32,
+    )
+
+    reference_T = np.array([132.3328283, 11.09020428, 1742.6288316], dtype=np.float32)
+
+    right_camera_H = np.array(
+        [
+            [-9.60537691e-01, -5.63334996e00, 5.07096936e03],
+            [-7.11052080e-01, 1.49624633e-01, -3.45108353e02],
+            [-7.90138864e-05, -2.41449879e-03, 1.00000000e00],
+        ],
+        dtype=np.float32,
+    )
+
+    K_flat = [
+        1911.8533121729813,
+        -1.2057610757951638,
+        1908.9765226798836,
+        0.0,
+        1909.2967489628422,
+        1096.4811450057355,
+        0.0,
+        0.0,
+        1.0,
+    ]
+
+    # Reshape into 3x3 matrix
+    camera_matrix = np.array(
+        [
+            [K_flat[0], K_flat[1], K_flat[2]],
+            [K_flat[3], K_flat[4], K_flat[5]],
+            [K_flat[6], K_flat[7], K_flat[8]],
+        ],
+        dtype=np.float32,
+    )
+
+    # remap image to the reference image
+    # use cv2.warpPerspective
+    # get the homography matrix
+    # apply the homography matrix to the right image
+    right_img_remapped = cv2.warpPerspective(
+        right_img, right_camera_H, (right_img.shape[1], right_img.shape[0])
+    )
+
+    plt.imshow(right_img_remapped)
+
+    # RGB is float within 0,1,  covert to uint8
+    right_img_remapped = (right_img_remapped * 255).astype(np.uint8)
+    cv2.imwrite("right_img_remapped.png", right_img_remapped)
+    plt.show()
+
+    assert False
+
+    # find homography between right and left images
+    # H = cv2.findHomography(right_image_points, left_image_points)
+
+
 def test_basketball_court_dataloader():
     rr.init("Basketball Court 3D Visualization", spawn=True)
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -290,7 +491,8 @@ def test_basketball_court_dataloader():
             if label == "arc":
                 assert len(points) == 4
 
-    img, heatmap, mask = dataset.__getitem__(1)
+    # 0: right; 3: left
+    img, heatmap, mask = dataset.__getitem__(3)
     print(img.shape)
     print(heatmap.shape)
     print("mask type: ", type(mask))
